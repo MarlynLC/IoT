@@ -1,43 +1,24 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
-import os
 
 contador = 11
 
 
-
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
 
-  def _set_response(self, content_type="text/plain", status_code=200):
-    self.send_response(status_code)
+  def _set_response(self, content_type="text/plain"):
+    self.send_response(200)
     self.send_header("Content-type", content_type)
     self.end_headers()
 
-  def throw_custom_error(self, message, status_code=400):
-    self._set_response("application/json", status_code)
+  def throw_custom_error(self, message):
+    self._set_response("application/json")
     self.wfile.write(json.dumps({"message": message}).encode())
 
   def do_GET(self):
-    # Set the response headers
-    print(self.path)
-    global led
-    if self.path == "/":
-      try:
-        # Get the absolute path to the HTML file
-        self._set_response(content_type="text/html")
-        html_file_path = os.path.abspath("Unidad II/index.html")
-        with open(html_file_path, "r", encoding="utf-8") as file_to_open:
-          # Write the HTML content to the response
-          self.wfile.write(file_to_open.read().encode())
-      except Exception as e:
-        print(f"Error: {e}")
-        self.wfile.write(f"Error: {e}".encode())
-    elif self.path == "/counter":
-      self._set_response()
-      self.wfile.write(json.dumps({"contador": contador}).encode())
-    else:
-      # send bad request response
-      self.throw_custom_error("Invalid path")
+    self._set_response()
+    respuesta = "El valor es: " + str(contador)
+    self.wfile.write(respuesta.encode())
 
   def do_POST(self):
     content_length = int(self.headers["Content-Length"])
@@ -74,7 +55,7 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
       contador -= int(body_json['quantity'])
 
     # Respond to the client
-    response_data = json.dumps({"message": "Received POST data, new value: " + str(contador), "status": "OK"})
+    response_data = json.dumps({"message": "Received POST data", "data": post_data.decode(), "status": "OK"})
     self._set_response("application/json")
     self.wfile.write(response_data.encode())
 
