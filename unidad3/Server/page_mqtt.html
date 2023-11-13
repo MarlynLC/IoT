@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MQTT con JS</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background-image: url('https://image.slidesdocs.com/responsive-images/background/blue-abstract-texture-polygon-technology-nature-powerpoint-background_94e8175035__960_540.jpg'); /* Reemplaza la URL con la ruta de tu imagen de fondo */
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+            color: #bb1515;
+        }
+
+        h1 {
+            color: rgba(0, 0, 255);
+            padding-top: 50px;
+        }
+
+        button {
+            background-color: #0b0bdd;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+            margin-right: 10px;
+        }
+
+        button.led_off {
+            background-color: #e74c3c;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            margin-top: 20px;
+            border: 1px solid #111010;
+            border-radius: 5px;
+        }
+
+        p#output_console {
+            text-align: left;
+            font-family: monospace;
+            margin: 10px;
+            background-color: rgba(255, 255, 255, 0.7); /* Ajusta la opacidad y el color de fondo para hacer el texto más legible */
+            padding: 10px;
+        }
+
+        #line-chart {
+            display: block;
+            margin: auto;
+            max-width: 80vw;
+            max-height: 80vh;
+            margin-top: 40px;
+        }
+
+        #container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 80px;
+        }
+
+        #counter_display {
+            margin-top: 20px;
+            font-size: 24px;
+            background-color: rgba(255, 255, 255, 0.7); /* Ajusta la opacidad y el color de fondo para hacer el texto más legible */
+            padding: 10px;
+        }
+    </style>
+    </head>
+    <body>
+        <h1>MQTT CON JS</h1>
+        <button
+            id="toggle"
+            class="led_on"
+        >
+            Apagar led
+        </button>
+        <button
+            id="fetch_data"
+            class="led_on"
+        >
+            Solicitar datos históricos
+        </button>
+        <input
+            type="text"
+            id="msgMQTT"
+        />
+        <p id="counter_display">Esperando....</p>
+        <canvas
+            id="line-chart"
+            width="800"
+            height="450"
+        ></canvas>
+
+        <p id="output_console"></p>
+        <!-- Toggle button for sending JSON -->
+    </body>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        let chart = new Chart(document.getElementById("line-chart"), {
+            type: "line",
+            data: {
+                labels: [1500, 1600, 1700, 1750, 1800, 1850, 1900, 1950, 1999, 2050],
+                datasets: [
+                    {
+                        data: [86, 114, 106, 106, 107, 111, 133, 221, 783, 2478],
+                        label: "HUMEDAD",
+                        borderColor: "#41F00C",
+                        fill: false,
+                    },
+                    {
+                        data: [282, 350, 411, 502, 635, 809, 947, 1402, 3700, 5267],
+                        label: "TEMPERATURA",
+                        borderColor: "#A40AE6",
+                        fill: false,
+                    },
+                ],
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: "World population per region (in millions)",
+                },
+            },
+        });
+
+        function updateChart(labels, temperatures, humidities) {
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = temperatures;
+            chart.data.datasets[1].data = humidities;
+            chart.update();
+        }
+    </script>
+    <script src="mqtt.js"></script>
+    <script>
+        let PUB_TOPIC = "monitores/server";
+        let msgMQTT = document.getElementById("msgMQTT");
+        let output_console = document.getElementById("output_console");
+        msgMQTT.addEventListener("keyup", (e) => {
+            if (e.keyCode === 13) {
+                console.log("Sending:", msgMQTT.value);
+                client.publish(PUB_TOPIC, msgMQTT.value);
+                msgMQTT.value = "";
+            }
+        });
+
+        let toggle = document.getElementById("toggle");
+        toggle.addEventListener("click", (e) => {
+            if (toggle.className == "led_on") {
+                toggle.className = "led_off";
+                toggle.innerHTML = "Encender led";
+                client.publish(PUB_TOPIC, JSON.stringify({ led: 0 }));
+            } else {
+                toggle.className = "led_on";
+                toggle.innerHTML = "Apagar led";
+                client.publish(PUB_TOPIC, JSON.stringify({ led: 1 }));
+            }
+        });
+
+        document.getElementById("fetch_data").addEventListener("click", (e) => {
+            client.publish(
+                PUB_TOPIC,
+                JSON.stringify({
+                    from: "WEB",
+                    to: "server",
+                    action: "GET_DATA",
+                })
+            );
+        });
+
+        /***
+         * Browser
+         * This document explains how to use MQTT over WebSocket with the ws and wss protocols.
+         * EMQX's default port for ws connection is 8083 and for wss connection is 8084.
+         * Note that you need to add a path after the connection address, such as /mqtt.
+         */
+        const url = "wss://me1e7caa.ala.us-east-1.emqxsl.com:8084/mqtt";
+
+        // Create an MQTT client instance
+        const options = {
+            // Clean session
+            clean: true,
+            connectTimeout: 4000,
+            // Authentication
+            clientId: "emqxjs_" + Math.random().toString(16).substr(2, 8),
+            username: "server",
+            password: "password",
+        };
+
+        const client = mqtt.connect(url, options);
+
+        client.on("connect", function () {
+            console.log("Connected");
+            // Subscribe to a topic
+            client.subscribe(PUB_TOPIC, function (err) {
+                if (!err) {
+                    // Publish a message to a topic
+                    console.log("Message is published");
+                    client.publish(PUB_TOPIC, "Hello mqtt from js");
+                }
+            });
+        });
+
+        let contador = 0;  // Inicializa el contador en 0
+
+// Receive messages
+client.on("message", function (topic, message) {
+    // message is Buffer
+    output_console.innerHTML = message.toString() + "<br>" + output_console.innerHTML;
+    try {
+        let data = JSON.parse(message.toString());
+        if (data["from"] == "server" && data["to"] == "WEB") {
+            updateChart(data["data"]["labels"], data["data"]["temperatures"], data["data"]["humidities"]);
+        } else if (data["from"] == "ESP32" && data["to"] == "broadcast" && data["action"] == "UPDATE_COUNTER") {
+            let value = parseInt(data["value"]);
+            contador += value;  // Acumula el valor en el contador
+            document.getElementById("counter_display").innerHTML = contador; // Actualiza el contador en el elemento HTML
+        } else if (data["from"] == "ESP32" && data["to"] == "broadcast" && data["action"] == "LESS_COUNTER") {
+            let value = parseInt(data["value"]);
+            contador -= value;  // Resta el valor del contador
+            document.getElementById("counter_display").innerHTML = contador; // Actualiza el contador en el elemento HTML
+        }
+    } catch (e) {
+        console.log("No es un JSON");
+    }
+});
+    </script>
+</html>
