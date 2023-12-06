@@ -1,6 +1,4 @@
 import sqlite3
-
-
 class DBStorage:
     def __init__(self, db_name="data.db"):
         self.db_name = db_name
@@ -28,7 +26,6 @@ class DBStorage:
         labels =[]
         temperatures =[]
         humidities =[]
-
         for row in self.cursor.fetchall():  
                 labels.append(row[3])
                 temperatures.append(row[1])

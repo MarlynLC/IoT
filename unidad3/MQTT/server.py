@@ -6,7 +6,6 @@ import random
 import time
 
 from db_storage import DBStorage
-
 from paho.mqtt import client as mqtt_client
 
 BROKER = 'v1af919d.ala.us-east-1.emqxsl.com'
@@ -61,34 +60,27 @@ def on_message(client, userdata, msg):
     print("Received '{msg.payload.decode()}' from '{msg.topic}' topic")
     try:
         message = msg.payload.decode()
-
         # decode json string to python dict
         try:
             msg_dict = json.loads(message)
         except json.decoder.JSONDecodeError:
             return
-
         # check if message is for me
         if msg_dict['to'] != "server":
             return
-
         # check if message has "action" key
         if "action" not in msg_dict:
             return
-
         if msg_dict["action"] == "SEND_DATA":
             # verify if message has "data" key
             if "data" not in msg_dict:
                 return
-
             # verify if data is a dict
             if not isinstance(msg_dict["data"], dict):
                 return
-
             # verify if data has "temperature" and "humidity" keys
             if "temperature" not in msg_dict["data"] or "humidity" not in msg_dict["data"]:
                 return
-
             # TODO store data in database
             print("Storing data in database...")
             db = DBStorage()
